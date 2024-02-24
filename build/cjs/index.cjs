@@ -54,7 +54,7 @@ class Logger {
     log(level, message, data) {
         const dt = luxon_1.DateTime.now();
         if (level !== 'ignore') {
-            const colorMethod = this.logLevel[level];
+            const colorMethod = this.logLevel[level] || 'green';
             const chalkMethod = chalk_1.default[colorMethod];
             if (typeof chalkMethod === 'function') {
                 if (level === 'debug' && this.env === 'production') {

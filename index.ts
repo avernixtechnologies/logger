@@ -25,7 +25,8 @@ type LogType =
     | 'ignore'
     | 'http'
     | 'notice'
-    | 'danger';
+    | 'danger'
+    | string;
 type ChalkColorMethod = keyof typeof chalk;
 
 /**
@@ -78,7 +79,7 @@ export default class Logger {
     log(level: LogType, message: string, data?: object): Log {
         const dt = DateTime.now();
         if (level !== 'ignore') {
-            const colorMethod = this.logLevel[level];
+            const colorMethod = this.logLevel[level] || 'green';
 
             const chalkMethod = chalk[colorMethod] as Function;
             if (typeof chalkMethod === 'function') {

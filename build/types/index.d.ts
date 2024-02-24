@@ -12,7 +12,7 @@ interface Args {
     name?: string;
     env?: string;
 }
-type LogType = 'info' | 'debug' | 'error' | 'warn' | 'crit' | 'ignore' | 'http' | 'notice' | 'danger';
+type LogType = 'info' | 'debug' | 'error' | 'warn' | 'crit' | 'ignore' | 'http' | 'notice' | 'danger' | string;
 type ChalkColorMethod = keyof typeof chalk;
 /**
  * A versatile logging class for handling various levels of log messages with colored output.

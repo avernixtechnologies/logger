@@ -49,7 +49,7 @@ export default class Logger {
     log(level, message, data) {
         const dt = DateTime.now();
         if (level !== 'ignore') {
-            const colorMethod = this.logLevel[level];
+            const colorMethod = this.logLevel[level] || 'green';
             const chalkMethod = chalk[colorMethod];
             if (typeof chalkMethod === 'function') {
                 if (level === 'debug' && this.env === 'production') {
