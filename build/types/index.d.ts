@@ -9,11 +9,14 @@ interface LogSet {
     data?: object;
 }
 interface Args {
+    debugMode: boolean;
+    customLogLevels?: {
+        [level: string]: ChalkHexMethod;
+    };
     name?: string;
-    env?: string;
 }
-type LogType = 'info' | 'debug' | 'error' | 'warn' | 'crit' | 'ignore' | 'http' | 'notice' | 'danger' | string;
-type ChalkColorMethod = keyof typeof chalk;
+type LogType = 'info' | 'debug' | 'error' | 'warn' | 'crit' | 'ignore' | 'http' | 'notice' | 'danger';
+type ChalkHexMethod = keyof typeof chalk;
 /**
  * A versatile logging class for handling various levels of log messages with colored output.
  * Supports dynamic log levels such as info, debug, error, warn, crit, and more.
@@ -32,15 +35,16 @@ type ChalkColorMethod = keyof typeof chalk;
  * @class Logger
  * @param {Object} args - Configuration options for the logger.
  * @param {string} [args.name] - Optional name for the logger instance, included in log output.
- * @param {string} [args.env] - The current environment (e.g., 'development', 'production'), used to control log output.
+ * @param {boolean} [args.debugMode] - Setting for debugMode, used to control log output.
+ * @param {object} [args.customLogLevels] - Allows extra log levels to be added with chalk color support.
  */
-export default class Logger {
+export declare class Logger {
+    private logLevels;
     name?: string;
-    env?: string;
+    debugMode: boolean;
     constructor(args: Args);
-    logLevel: {
-        [key in LogType]: ChalkColorMethod;
-    };
+    isValidHexColor(hex: string): boolean;
+    getString(level: LogType, message: string): string | undefined;
     /**
      * Logs a message at the specified level with optional data. Filters out debug messages in production.
      *

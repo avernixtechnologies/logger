@@ -1,6 +1,6 @@
 {
     "name": "@trarn/logger",
-    "version": "1.0.8",
+    "version": "1.0.11",
     "description": "Logger prebuilt to be used by Avernix Technologies",
     "type": "module",
     "types": "build/index.d.ts",

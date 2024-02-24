@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.Logger = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const luxon_1 = require("luxon");
 /**
@@ -23,26 +24,57 @@ const luxon_1 = require("luxon");
  * @class Logger
  * @param {Object} args - Configuration options for the logger.
  * @param {string} [args.name] - Optional name for the logger instance, included in log output.
- * @param {string} [args.env] - The current environment (e.g., 'development', 'production'), used to control log output.
+ * @param {boolean} [args.debugMode] - Setting for debugMode, used to control log output.
+ * @param {object} [args.customLogLevels] - Allows extra log levels to be added with chalk color support.
  */
 class Logger {
+    logLevels;
     name;
-    env;
+    debugMode;
     constructor(args) {
         this.name = args.name;
-        this.env = args.env;
+        this.debugMode = args.debugMode !== undefined ? args.debugMode : true;
+        // Default log levels
+        const defaultLogLevels = {
+            info: '#00FF00',
+            debug: '#0000FF',
+            error: '#FF0000',
+            http: '#D3D3D3',
+            notice: '#00FFFF',
+            warn: '#FFFF00',
+            crit: '#FF00FF',
+            ignore: '#FFFFFF',
+            danger: '#FF4000',
+        };
+        // Merge default log levels with custom levels provided by the user
+        this.logLevels = { ...defaultLogLevels, ...args.customLogLevels };
+        Object.values(this.logLevels).forEach((color) => {
+            if (!this.isValidHexColor(color)) {
+                console.log(chalk_1.default
+                    .rgb(123, 45, 67)
+                    .underline('Invalid hex color: ' + color + ' | Defaulting to'), chalk_1.default.hex('#00FF00').underline('#00FF00'), chalk_1.default.rgb(123, 45, 67).underline('Please use a valid hex color code.'));
+                // throw new Error('Invalid hex color: ' + color);
+            }
+        });
     }
-    logLevel = {
-        info: 'green',
-        debug: 'blue',
-        error: 'red',
-        http: 'gray',
-        notice: 'cyan',
-        warn: 'yellow',
-        crit: 'magenta',
-        ignore: 'white',
-        danger: 'redBright',
-    };
+    isValidHexColor(hex) {
+        const regex = /^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+        return regex.test(hex);
+    }
+    getString(level, message) {
+        const dt = luxon_1.DateTime.now();
+        let colorMethod = this.logLevels[level];
+        if (!this.isValidHexColor(colorMethod)) {
+            colorMethod = '#00FF00';
+        }
+        const chalkMethod = chalk_1.default.hex(colorMethod);
+        if (typeof chalkMethod === 'function') {
+            return `${dt.toLocaleString(luxon_1.DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalkMethod(level.toUpperCase())}: ${message}`;
+        }
+        else {
+            console.error('Invalid log level or chalk method not callable');
+        }
+    }
     /**
      * Logs a message at the specified level with optional data. Filters out debug messages in production.
      *
@@ -52,20 +84,10 @@ class Logger {
      * @returns {Log} The log object containing the level, message, and optional data.
      */
     log(level, message, data) {
-        const dt = luxon_1.DateTime.now();
-        if (level !== 'ignore') {
-            const colorMethod = this.logLevel[level] || 'green';
-            const chalkMethod = chalk_1.default[colorMethod];
-            if (typeof chalkMethod === 'function') {
-                if (level === 'debug' && this.env === 'production') {
-                    return { level, message, data };
-                }
-                console.log(`${dt.toLocaleString(luxon_1.DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalkMethod(`${level.toUpperCase()}`)}: ${message}`, data ? data : '');
-            }
-            else {
-                console.error('Invalid log level or chalk method not callable');
-            }
+        if (level === 'debug' && !this.debugMode) {
+            return { level, message, data };
         }
+        console.log(`${this.getString(level, message)}`, data ? data : '');
         return { level, message, data };
     }
     /**
@@ -75,8 +97,7 @@ class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     info(message, data) {
-        const dt = luxon_1.DateTime.now();
-        console.log(`${dt.toLocaleString(luxon_1.DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk_1.default['green']('INFO')}: ${message}`, data ? data : '');
+        this.log('info', message, data);
         return { message, data };
     }
     /**
@@ -86,11 +107,7 @@ class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     debug(message, data) {
-        const dt = luxon_1.DateTime.now();
-        if (this.env === 'production') {
-            return { message, data };
-        }
-        console.log(`${dt.toLocaleString(luxon_1.DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk_1.default['blue']('DEBUG')}: ${message}`, data ? data : '');
+        this.log('debug', message, data);
         return { message, data };
     }
     /**
@@ -100,8 +117,7 @@ class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     error(message, data) {
-        const dt = luxon_1.DateTime.now();
-        console.log(`${dt.toLocaleString(luxon_1.DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk_1.default['red']('ERROR')}: ${message}`, data ? data : '');
+        this.log('error', message, data);
         return { message, data };
     }
     /**
@@ -111,8 +127,7 @@ class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     warn(message, data) {
-        const dt = luxon_1.DateTime.now();
-        console.log(`${dt.toLocaleString(luxon_1.DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk_1.default['yellow']('WARN')}: ${message}`, data ? data : '');
+        this.log('warn', message, data);
         return { message, data };
     }
     /**
@@ -122,8 +137,7 @@ class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     crit(message, data) {
-        const dt = luxon_1.DateTime.now();
-        console.log(`${dt.toLocaleString(luxon_1.DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk_1.default['magenta']('CRIT')}: ${message}`, data ? data : '');
+        this.log('crit', message, data);
         return { message, data };
     }
     /**
@@ -133,8 +147,7 @@ class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     notice(message, data) {
-        const dt = luxon_1.DateTime.now();
-        console.log(`${dt.toLocaleString(luxon_1.DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk_1.default['cyan']('NOTICE')}: ${message}`, data ? data : '');
+        this.log('notice', message, data);
         return { message, data };
     }
     /**
@@ -144,8 +157,7 @@ class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     http(message, data) {
-        const dt = luxon_1.DateTime.now();
-        console.log(`${dt.toLocaleString(luxon_1.DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk_1.default['gray']('HTTP')}: ${message}`, data ? data : '');
+        this.log('http', message, data);
         return { message, data };
     }
     /**
@@ -155,8 +167,7 @@ class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     danger(message, data) {
-        const dt = luxon_1.DateTime.now();
-        console.log(`${dt.toLocaleString(luxon_1.DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk_1.default['redBright']('DANGER')}: ${message}`, data ? data : '');
+        this.log('danger', message, data);
         return { message, data };
     }
     /**
@@ -169,5 +180,5 @@ class Logger {
         return { message, data };
     }
 }
-exports.default = Logger;
+exports.Logger = Logger;
 // export default Logger;

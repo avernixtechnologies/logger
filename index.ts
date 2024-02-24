@@ -12,8 +12,25 @@ interface LogSet {
 }
 
 interface Args {
+    debugMode: boolean;
+    customLogLevels?: { [level: string]: ChalkHexMethod };
     name?: string;
-    env?: string;
+}
+
+interface LogLevels {
+    info: string;
+    debug: string;
+    error: string;
+    http: string;
+    notice: string;
+    warn: string;
+    crit: string;
+    ignore: string;
+    danger: string;
+}
+
+interface CustomLogLevels {
+    [level: string]: string; // Allow any string as a key and value
 }
 
 type LogType =
@@ -25,9 +42,8 @@ type LogType =
     | 'ignore'
     | 'http'
     | 'notice'
-    | 'danger'
-    | string;
-type ChalkColorMethod = keyof typeof chalk;
+    | 'danger';
+type ChalkHexMethod = keyof typeof chalk;
 
 /**
  * A versatile logging class for handling various levels of log messages with colored output.
@@ -47,26 +63,64 @@ type ChalkColorMethod = keyof typeof chalk;
  * @class Logger
  * @param {Object} args - Configuration options for the logger.
  * @param {string} [args.name] - Optional name for the logger instance, included in log output.
- * @param {string} [args.env] - The current environment (e.g., 'development', 'production'), used to control log output.
+ * @param {boolean} [args.debugMode] - Setting for debugMode, used to control log output.
+ * @param {object} [args.customLogLevels] - Allows extra log levels to be added with chalk color support.
  */
-export default class Logger {
+export class Logger {
+    private logLevels: { [key in LogType | string]: string };
     name?: string;
-    env?: string;
+    debugMode: boolean;
+
     constructor(args: Args) {
         this.name = args.name;
-        this.env = args.env;
+        this.debugMode = args.debugMode !== undefined ? args.debugMode : true;
+        // Default log levels
+        const defaultLogLevels: { [key in LogType]: string } = {
+            info: '#00FF00',
+            debug: '#0000FF',
+            error: '#FF0000',
+            http: '#D3D3D3',
+            notice: '#00FFFF',
+            warn: '#FFFF00',
+            crit: '#FF00FF',
+            ignore: '#FFFFFF',
+            danger: '#FF4000',
+        };
+
+        // Merge default log levels with custom levels provided by the user
+        this.logLevels = { ...defaultLogLevels, ...args.customLogLevels };
+        Object.values(this.logLevels).forEach((color) => {
+            if (!this.isValidHexColor(color)) {
+                console.log(
+                    chalk
+                        .rgb(123, 45, 67)
+                        .underline('Invalid hex color: ' + color + ' | Defaulting to'),
+                    chalk.hex('#00FF00').underline('#00FF00'),
+                    chalk.rgb(123, 45, 67).underline('Please use a valid hex color code.'),
+                );
+                // throw new Error('Invalid hex color: ' + color);
+            }
+        });
     }
-    logLevel: { [key in LogType]: ChalkColorMethod } = {
-        info: 'green',
-        debug: 'blue',
-        error: 'red',
-        http: 'gray',
-        notice: 'cyan',
-        warn: 'yellow',
-        crit: 'magenta',
-        ignore: 'white',
-        danger: 'redBright',
-    };
+
+    isValidHexColor(hex: string) {
+        const regex = /^#([0-9a-fA-F]{3,4}|[0-9a-fA-F]{6}|[0-9a-fA-F]{8})$/;
+        return regex.test(hex);
+    }
+
+    getString(level: LogType, message: string) {
+        const dt = DateTime.now();
+        let colorMethod = this.logLevels[level];
+        if (!this.isValidHexColor(colorMethod)) {
+            colorMethod = '#00FF00';
+        }
+        const chalkMethod = chalk.hex(colorMethod) as Function;
+        if (typeof chalkMethod === 'function') {
+            return `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalkMethod(level.toUpperCase())}: ${message}`;
+        } else {
+            console.error('Invalid log level or chalk method not callable');
+        }
+    }
 
     /**
      * Logs a message at the specified level with optional data. Filters out debug messages in production.
@@ -77,24 +131,10 @@ export default class Logger {
      * @returns {Log} The log object containing the level, message, and optional data.
      */
     log(level: LogType, message: string, data?: object): Log {
-        const dt = DateTime.now();
-        if (level !== 'ignore') {
-            const colorMethod = this.logLevel[level] || 'green';
-
-            const chalkMethod = chalk[colorMethod] as Function;
-            if (typeof chalkMethod === 'function') {
-                if (level === 'debug' && this.env === 'production') {
-                    return { level, message, data };
-                }
-
-                console.log(
-                    `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalkMethod(`${level.toUpperCase()}`)}: ${message}`,
-                    data ? data : '',
-                );
-            } else {
-                console.error('Invalid log level or chalk method not callable');
-            }
+        if (level === 'debug' && !this.debugMode) {
+            return { level, message, data };
         }
+        console.log(`${this.getString(level, message)}`, data ? data : '');
         return { level, message, data };
     }
 
@@ -105,11 +145,7 @@ export default class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     info(message: string, data: object): LogSet {
-        const dt = DateTime.now();
-        console.log(
-            `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk['green']('INFO')}: ${message}`,
-            data ? data : '',
-        );
+        this.log('info', message, data);
         return { message, data };
     }
 
@@ -120,14 +156,7 @@ export default class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     debug(message: string, data: object): LogSet {
-        const dt = DateTime.now();
-        if (this.env === 'production') {
-            return { message, data };
-        }
-        console.log(
-            `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk['blue']('DEBUG')}: ${message}`,
-            data ? data : '',
-        );
+        this.log('debug', message, data);
         return { message, data };
     }
 
@@ -138,11 +167,7 @@ export default class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     error(message: string, data: object): LogSet {
-        const dt = DateTime.now();
-        console.log(
-            `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk['red']('ERROR')}: ${message}`,
-            data ? data : '',
-        );
+        this.log('error', message, data);
         return { message, data };
     }
 
@@ -153,11 +178,7 @@ export default class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     warn(message: string, data: object): LogSet {
-        const dt = DateTime.now();
-        console.log(
-            `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk['yellow']('WARN')}: ${message}`,
-            data ? data : '',
-        );
+        this.log('warn', message, data);
         return { message, data };
     }
 
@@ -168,11 +189,7 @@ export default class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     crit(message: string, data: object): LogSet {
-        const dt = DateTime.now();
-        console.log(
-            `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk['magenta']('CRIT')}: ${message}`,
-            data ? data : '',
-        );
+        this.log('crit', message, data);
         return { message, data };
     }
 
@@ -183,11 +200,7 @@ export default class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     notice(message: string, data: object): LogSet {
-        const dt = DateTime.now();
-        console.log(
-            `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk['cyan']('NOTICE')}: ${message}`,
-            data ? data : '',
-        );
+        this.log('notice', message, data);
         return { message, data };
     }
 
@@ -198,11 +211,7 @@ export default class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     http(message: string, data: object): LogSet {
-        const dt = DateTime.now();
-        console.log(
-            `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk['gray']('HTTP')}: ${message}`,
-            data ? data : '',
-        );
+        this.log('http', message, data);
         return { message, data };
     }
 
@@ -213,11 +222,7 @@ export default class Logger {
      * @param {Object} data - Optional data to log alongside the message.
      */
     danger(message: string, data: object): LogSet {
-        const dt = DateTime.now();
-        console.log(
-            `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalk['redBright']('DANGER')}: ${message}`,
-            data ? data : '',
-        );
+        this.log('danger', message, data);
         return { message, data };
     }
 
