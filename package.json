@@ -1,0 +1,49 @@
+{
+    "name": "@trarn/logger",
+    "version": "1.0.6",
+    "description": "Logger prebuilt to be used by Avernix Technologies",
+    "type": "module",
+    "types": "build/index.d.ts",
+    "main": "build/index.js",
+    "files": [
+        "build",
+        "README.md",
+        "LICENSE",
+        "package.json"
+    ],
+    "exports": {
+        "types": "./build/types/index.d.ts",
+        "require": "./build/cjs/index.cjs",
+        "import": "./build/esm/index.js",
+        "default": "./build/esm/index.js"
+    },
+    "scripts": {
+        "compile": "tsc -b ./tsconfig.cjs.json ./tsconfig.esm.json ./tsconfig.types.json && node rename-script.cjs",
+        "pub": "npm publish --access=public",
+        "build": "tsc",
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "repository": {
+        "type": "git",
+        "url": "git+https://github.com/avernixtechnologies/logger.git"
+    },
+    "keywords": [
+        "logger"
+    ],
+    "author": "Avernix Technologies",
+    "license": "MIT",
+    "bugs": {
+        "url": "https://github.com/avernixtechnologies/logger/issues"
+    },
+    "homepage": "https://github.com/avernixtechnologies/logger#readme",
+    "dependencies": {
+        "chalk": "^4.1.2",
+        "luxon": "^3.4.4",
+        "prettier": "^3.2.5"
+    },
+    "devDependencies": {
+        "@types/luxon": "^3.4.2",
+        "@types/node": "^20.11.20",
+        "typescript": "^5.3.3"
+    }
+}
