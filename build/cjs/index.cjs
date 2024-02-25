@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.Logger = void 0;
+exports.createLogger = exports.Logger = void 0;
 const chalk_1 = __importDefault(require("chalk"));
 const luxon_1 = require("luxon");
 /**
@@ -16,11 +16,11 @@ const luxon_1 = require("luxon");
  *
  * Usage:
  * ```javascript
- * const logger = new Logger({ name: 'MyApp', env: process.env.NODE_ENV });
+ * const logger = new Logger({ name: 'MyApp', debugMode: process.env.NODE_ENV === 'development' ? true : false });
  * logger.info('Application started', { pid: process.pid });
+ * logger.log('info', 'Application started', { pid: process.pid })
  * logger.error('An error occurred', { error: err });
  * ```
- *
  * @class Logger
  * @param {Object} args - Configuration options for the logger.
  * @param {string} [args.name] - Optional name for the logger instance, included in log output.
@@ -31,9 +31,12 @@ class Logger {
     logLevels;
     name;
     debugMode;
+    data;
+    customLogLevels = {};
     constructor(args) {
+        this.data = args?.data;
         this.name = args.name;
-        this.debugMode = args.debugMode !== undefined ? args.debugMode : true;
+        this.debugMode = args.debugMode ?? true;
         // Default log levels
         const defaultLogLevels = {
             info: '#00FF00',
@@ -46,8 +49,9 @@ class Logger {
             ignore: '#FFFFFF',
             danger: '#FF4000',
         };
+        this.customLogLevels = args.customLogLevels ?? {};
         // Merge default log levels with custom levels provided by the user
-        this.logLevels = { ...defaultLogLevels, ...args.customLogLevels };
+        this.logLevels = { ...defaultLogLevels, ...this.customLogLevels };
         Object.values(this.logLevels).forEach((color) => {
             if (!this.isValidHexColor(color)) {
                 console.log(chalk_1.default
@@ -64,17 +68,37 @@ class Logger {
     getString(level, message) {
         const dt = luxon_1.DateTime.now();
         let colorMethod = this.logLevels[level];
-        if (!this.isValidHexColor(colorMethod)) {
-            colorMethod = '#00FF00';
+        const colorOrMethod = this.logLevels[level];
+        let formattedMessage;
+        if (this.isValidHexColor(colorOrMethod)) {
+            // If it's a hex color, use chalk.hex
+            formattedMessage = chalk_1.default.hex(colorOrMethod)(`${level.toUpperCase()}: ${message}`);
         }
-        const chalkMethod = chalk_1.default.hex(colorMethod);
-        if (typeof chalkMethod === 'function') {
-            return `${dt.toLocaleString(luxon_1.DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalkMethod(level.toUpperCase())}: ${message}`;
+        else if (typeof chalk_1.default[colorOrMethod] === 'function') {
+            // If it's a valid chalk method, use it directly
+            formattedMessage = chalk_1.default[colorOrMethod](`${level.toUpperCase()}: ${message}`);
         }
         else {
-            console.error('Invalid log level or chalk method not callable');
+            // Fallback to default formatting
+            formattedMessage = `${level.toUpperCase()}: ${message}`;
         }
+        return `${dt.toLocaleString(luxon_1.DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`;
     }
+    // createLogger(args: Args): IAvernixLogger {
+    //     const logger = new Logger(args);
+    //     return new Proxy(logger, {
+    //         get(target, prop, receiver) {
+    //             if (typeof prop === 'string' && prop in target.customLogLevels) {
+    //                 return (message: string, data?: object) => {
+    //                     const level = prop;
+    //                     target.log(level, message, data); // Ensure log() accepts colorMethod
+    //                 };
+    //             }
+    //             // Use explicit parameters instead of ...arguments
+    //             return Reflect.get(target, prop, receiver);
+    //         },
+    //     });
+    // }
     /**
      * Logs a message at the specified level with optional data. Filters out debug messages in production.
      *
@@ -87,7 +111,24 @@ class Logger {
         if (level === 'debug' && !this.debugMode) {
             return { level, message, data };
         }
-        console.log(`${this.getString(level, message)}`, data ? data : '');
+        const dt = luxon_1.DateTime.now();
+        let colorMethod = this.logLevels[level];
+        const colorOrMethod = this.logLevels[level];
+        let formattedMessage;
+        if (this.isValidHexColor(colorOrMethod)) {
+            // If it's a hex color, use chalk.hex
+            formattedMessage = chalk_1.default.hex(colorOrMethod)(`${level.toUpperCase()}`);
+        }
+        else if (typeof chalk_1.default[colorOrMethod] === 'function') {
+            // If it's a valid chalk method, use it directly
+            formattedMessage = chalk_1.default[colorOrMethod](`${level.toUpperCase()}`);
+        }
+        else {
+            // Fallback to default formatting
+            formattedMessage = `${level.toUpperCase()}`;
+        }
+        // return `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`;
+        console.log(`${dt.toLocaleString(luxon_1.DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`);
         return { level, message, data };
     }
     /**
@@ -181,4 +222,20 @@ class Logger {
     }
 }
 exports.Logger = Logger;
-// export default Logger;
+function createLogger(args) {
+    const logger = new Logger(args);
+    return new Proxy(logger, {
+        get(target, prop, receiver) {
+            if (typeof prop === 'string' && prop in target.customLogLevels) {
+                return (message, data) => {
+                    const level = prop;
+                    // const colorMethod = target.customLogLevels[level] ?? '#FFFFFF'; // Default color
+                    target.log(level, message, data); // Ensure log() accepts colorMethod
+                };
+            }
+            // Use explicit parameters instead of ...arguments
+            return Reflect.get(target, prop, receiver);
+        },
+    });
+}
+exports.createLogger = createLogger;

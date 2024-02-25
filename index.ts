@@ -1,6 +1,86 @@
 import chalk from 'chalk';
 import { DateTime } from 'luxon';
 
+/**
+ * ILogger interface defines a standard logging system with various levels of log messages.
+ * It provides methods to log messages at different severity levels, including informational,
+ * warning, and error messages, among others.
+ */
+interface IAvernixLogger {
+    /**
+     * Logs a message with a custom level.
+     * @param level The severity level of the log message.
+     * @param message The log message content.
+     * @param data Optional additional data related to the log message.
+     */
+    log(level: string, message: string, data?: object): void;
+
+    /**
+     * Logs an informational message.
+     * @param message The informational message content.
+     * @param data Optional additional data related to the message.
+     */
+    info(message: string, data?: object): void;
+
+    /**
+     * Logs a debug message, typically used to provide detailed information useful in diagnosing problems.
+     * Debug messages are often only enabled or visible in development environments.
+     * @param message The debug message content.
+     * @param data Optional additional data related to the debug information.
+     */
+    debug(message: string, data?: object): void;
+
+    /**
+     * Logs an error message.
+     * @param message The error message content.
+     * @param data Optional additional data related to the error.
+     */
+    error(message: string, data?: object): void;
+
+    /**
+     * Logs a warning message.
+     * @param message The warning message content.
+     * @param data Optional additional data related to the warning.
+     */
+    warn(message: string, data?: object): void;
+
+    /**
+     * Logs a critical error message.
+     * @param message The critical error message content.
+     * @param data Optional additional data related to the critical error.
+     */
+    crit(message: string, data?: object): void;
+
+    /**
+     * Ignores the message. This method might be used to log messages that are considered
+     * not important or should be filtered out in certain conditions.
+     * @param message The message to ignore.
+     * @param data Optional additional data related to the message.
+     */
+    ignore(message: string, data?: object): void;
+
+    /**
+     * Logs an HTTP request or response message.
+     * @param message The HTTP message content.
+     * @param data Optional additional data related to the HTTP message.
+     */
+    http(message: string, data?: object): void;
+
+    /**
+     * Logs a notice message, typically used for less urgent informational messages.
+     * @param message The notice message content.
+     * @param data Optional additional data related to the notice.
+     */
+    notice(message: string, data?: object): void;
+
+    /**
+     * Logs a danger message, indicating a severe issue or error that needs immediate attention.
+     * @param message The danger message content.
+     * @param data Optional additional data related to the danger message.
+     */
+    danger(message: string, data?: object): void;
+}
+
 interface Log {
     level: LogType;
     message: string;
@@ -12,22 +92,25 @@ interface LogSet {
 }
 
 interface Args {
+    level: string;
+    message: string;
+    data: object;
     debugMode: boolean;
     customLogLevels?: { [level: string]: ChalkHexMethod };
     name?: string;
 }
 
-interface LogLevels {
-    info: string;
-    debug: string;
-    error: string;
-    http: string;
-    notice: string;
-    warn: string;
-    crit: string;
-    ignore: string;
-    danger: string;
-}
+// interface LogLevels {
+//     info: string;
+//     debug: string;
+//     error: string;
+//     http: string;
+//     notice: string;
+//     warn: string;
+//     crit: string;
+//     ignore: string;
+//     danger: string;
+// }
 
 interface CustomLogLevels {
     [level: string]: string; // Allow any string as a key and value
@@ -42,7 +125,8 @@ type LogType =
     | 'ignore'
     | 'http'
     | 'notice'
-    | 'danger';
+    | 'danger'
+    | string;
 type ChalkHexMethod = keyof typeof chalk;
 
 /**
@@ -55,25 +139,28 @@ type ChalkHexMethod = keyof typeof chalk;
  *
  * Usage:
  * ```javascript
- * const logger = new Logger({ name: 'MyApp', env: process.env.NODE_ENV });
+ * const logger = new Logger({ name: 'MyApp', debugMode: process.env.NODE_ENV === 'development' ? true : false });
  * logger.info('Application started', { pid: process.pid });
+ * logger.log('info', 'Application started', { pid: process.pid })
  * logger.error('An error occurred', { error: err });
  * ```
- *
  * @class Logger
  * @param {Object} args - Configuration options for the logger.
  * @param {string} [args.name] - Optional name for the logger instance, included in log output.
  * @param {boolean} [args.debugMode] - Setting for debugMode, used to control log output.
  * @param {object} [args.customLogLevels] - Allows extra log levels to be added with chalk color support.
  */
-export class Logger {
+export class Logger implements IAvernixLogger {
     private logLevels: { [key in LogType | string]: string };
     name?: string;
     debugMode: boolean;
+    data: object;
+    public customLogLevels: CustomLogLevels = {};
 
     constructor(args: Args) {
+        this.data = args?.data;
         this.name = args.name;
-        this.debugMode = args.debugMode !== undefined ? args.debugMode : true;
+        this.debugMode = args.debugMode ?? true;
         // Default log levels
         const defaultLogLevels: { [key in LogType]: string } = {
             info: '#00FF00',
@@ -86,9 +173,9 @@ export class Logger {
             ignore: '#FFFFFF',
             danger: '#FF4000',
         };
-
+        this.customLogLevels = args.customLogLevels ?? {};
         // Merge default log levels with custom levels provided by the user
-        this.logLevels = { ...defaultLogLevels, ...args.customLogLevels };
+        this.logLevels = { ...defaultLogLevels, ...this.customLogLevels };
         Object.values(this.logLevels).forEach((color) => {
             if (!this.isValidHexColor(color)) {
                 console.log(
@@ -111,16 +198,40 @@ export class Logger {
     getString(level: LogType, message: string) {
         const dt = DateTime.now();
         let colorMethod = this.logLevels[level];
-        if (!this.isValidHexColor(colorMethod)) {
-            colorMethod = '#00FF00';
-        }
-        const chalkMethod = chalk.hex(colorMethod) as Function;
-        if (typeof chalkMethod === 'function') {
-            return `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${chalkMethod(level.toUpperCase())}: ${message}`;
+        const colorOrMethod = this.logLevels[level];
+        let formattedMessage: string;
+
+        if (this.isValidHexColor(colorOrMethod)) {
+            // If it's a hex color, use chalk.hex
+            formattedMessage = chalk.hex(colorOrMethod)(`${level.toUpperCase()}: ${message}`);
+        } else if (typeof chalk[colorOrMethod as keyof typeof chalk] === 'function') {
+            // If it's a valid chalk method, use it directly
+            formattedMessage = (chalk[colorOrMethod as keyof typeof chalk] as any)(
+                `${level.toUpperCase()}: ${message}`,
+            );
         } else {
-            console.error('Invalid log level or chalk method not callable');
+            // Fallback to default formatting
+            formattedMessage = `${level.toUpperCase()}: ${message}`;
         }
+
+        return `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`;
     }
+
+    // createLogger(args: Args): IAvernixLogger {
+    //     const logger = new Logger(args);
+    //     return new Proxy(logger, {
+    //         get(target, prop, receiver) {
+    //             if (typeof prop === 'string' && prop in target.customLogLevels) {
+    //                 return (message: string, data?: object) => {
+    //                     const level = prop;
+    //                     target.log(level, message, data); // Ensure log() accepts colorMethod
+    //                 };
+    //             }
+    //             // Use explicit parameters instead of ...arguments
+    //             return Reflect.get(target, prop, receiver);
+    //         },
+    //     });
+    // }
 
     /**
      * Logs a message at the specified level with optional data. Filters out debug messages in production.
@@ -134,7 +245,30 @@ export class Logger {
         if (level === 'debug' && !this.debugMode) {
             return { level, message, data };
         }
-        console.log(`${this.getString(level, message)}`, data ? data : '');
+
+        const dt = DateTime.now();
+        let colorMethod = this.logLevels[level];
+        const colorOrMethod = this.logLevels[level];
+        let formattedMessage: string;
+
+        if (this.isValidHexColor(colorOrMethod)) {
+            // If it's a hex color, use chalk.hex
+            formattedMessage = chalk.hex(colorOrMethod)(`${level.toUpperCase()}`);
+        } else if (typeof chalk[colorOrMethod as keyof typeof chalk] === 'function') {
+            // If it's a valid chalk method, use it directly
+            formattedMessage = (chalk[colorOrMethod as keyof typeof chalk] as any)(
+                `${level.toUpperCase()}`,
+            );
+        } else {
+            // Fallback to default formatting
+            formattedMessage = `${level.toUpperCase()}`;
+        }
+
+        // return `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`;
+
+        console.log(
+            `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`,
+        );
         return { level, message, data };
     }
 
@@ -237,4 +371,19 @@ export class Logger {
     }
 }
 
-// export default Logger;
+export function createLogger(args: Args) {
+    const logger = new Logger(args);
+    return new Proxy(logger, {
+        get(target, prop, receiver) {
+            if (typeof prop === 'string' && prop in target.customLogLevels) {
+                return (message: string, data?: object) => {
+                    const level = prop;
+                    // const colorMethod = target.customLogLevels[level] ?? '#FFFFFF'; // Default color
+                    target.log(level, message, data); // Ensure log() accepts colorMethod
+                };
+            }
+            // Use explicit parameters instead of ...arguments
+            return Reflect.get(target, prop, receiver);
+        },
+    });
+}
