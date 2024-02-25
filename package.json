@@ -1,6 +1,6 @@
 {
     "name": "@trarn/logger",
-    "version": "1.0.18",
+    "version": "1.0.20",
     "description": "Logger prebuilt to be used by Avernix Technologies",
     "type": "module",
     "types": "build/index.d.ts",
@@ -36,7 +36,7 @@
     "bugs": {
         "url": "https://github.com/avernixtechnologies/logger/issues"
     },
-    "homepage": "https://github.com/avernixtechnologies/logger#readme",
+    "homepage": "https://avernix.com",
     "dependencies": {
         "chalk": "^4.1.2",
         "luxon": "^3.4.4",

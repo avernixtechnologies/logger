@@ -72,15 +72,15 @@ class Logger {
         let formattedMessage;
         if (this.isValidHexColor(colorOrMethod)) {
             // If it's a hex color, use chalk.hex
-            formattedMessage = chalk_1.default.hex(colorOrMethod)(`${level.toUpperCase()}: ${message}`);
+            formattedMessage = chalk_1.default.hex(colorOrMethod)(`${level.toUpperCase()}`);
         }
         else if (typeof chalk_1.default[colorOrMethod] === 'function') {
             // If it's a valid chalk method, use it directly
-            formattedMessage = chalk_1.default[colorOrMethod](`${level.toUpperCase()}: ${message}`);
+            formattedMessage = chalk_1.default[colorOrMethod](`${level.toUpperCase()}`);
         }
         else {
             // Fallback to default formatting
-            formattedMessage = `${level.toUpperCase()}: ${message}`;
+            formattedMessage = `${level.toUpperCase()}`;
         }
         return `${dt.toLocaleString(luxon_1.DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`;
     }
@@ -128,7 +128,7 @@ class Logger {
             formattedMessage = `${level.toUpperCase()}`;
         }
         // return `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`;
-        console.log(`${dt.toLocaleString(luxon_1.DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`);
+        console.log(`${this.getString(level, message)}`, data ? data : '');
         return { level, message, data };
     }
     /**

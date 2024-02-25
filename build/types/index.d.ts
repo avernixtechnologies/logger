@@ -1,5 +1,8 @@
 import chalk from 'chalk';
 /**
+ * A lot of the DocBlocks were generated using AI. If you notice anything off, please let us know.
+ */
+/**
  * ILogger interface defines a standard logging system with various levels of log messages.
  * It provides methods to log messages at different severity levels, including informational,
  * warning, and error messages, among others.

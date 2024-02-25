@@ -66,15 +66,15 @@ export class Logger {
         let formattedMessage;
         if (this.isValidHexColor(colorOrMethod)) {
             // If it's a hex color, use chalk.hex
-            formattedMessage = chalk.hex(colorOrMethod)(`${level.toUpperCase()}: ${message}`);
+            formattedMessage = chalk.hex(colorOrMethod)(`${level.toUpperCase()}`);
         }
         else if (typeof chalk[colorOrMethod] === 'function') {
             // If it's a valid chalk method, use it directly
-            formattedMessage = chalk[colorOrMethod](`${level.toUpperCase()}: ${message}`);
+            formattedMessage = chalk[colorOrMethod](`${level.toUpperCase()}`);
         }
         else {
             // Fallback to default formatting
-            formattedMessage = `${level.toUpperCase()}: ${message}`;
+            formattedMessage = `${level.toUpperCase()}`;
         }
         return `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`;
     }
@@ -122,7 +122,7 @@ export class Logger {
             formattedMessage = `${level.toUpperCase()}`;
         }
         // return `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`;
-        console.log(`${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`);
+        console.log(`${this.getString(level, message)}`, data ? data : '');
         return { level, message, data };
     }
     /**

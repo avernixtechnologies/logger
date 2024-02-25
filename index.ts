@@ -2,6 +2,10 @@ import chalk from 'chalk';
 import { DateTime } from 'luxon';
 
 /**
+ * A lot of the DocBlocks were generated using AI. If you notice anything off, please let us know.
+ */
+
+/**
  * ILogger interface defines a standard logging system with various levels of log messages.
  * It provides methods to log messages at different severity levels, including informational,
  * warning, and error messages, among others.
@@ -100,18 +104,6 @@ interface Args {
     name?: string;
 }
 
-// interface LogLevels {
-//     info: string;
-//     debug: string;
-//     error: string;
-//     http: string;
-//     notice: string;
-//     warn: string;
-//     crit: string;
-//     ignore: string;
-//     danger: string;
-// }
-
 interface CustomLogLevels {
     [level: string]: string; // Allow any string as a key and value
 }
@@ -203,15 +195,15 @@ export class Logger implements IAvernixLogger {
 
         if (this.isValidHexColor(colorOrMethod)) {
             // If it's a hex color, use chalk.hex
-            formattedMessage = chalk.hex(colorOrMethod)(`${level.toUpperCase()}: ${message}`);
+            formattedMessage = chalk.hex(colorOrMethod)(`${level.toUpperCase()}`);
         } else if (typeof chalk[colorOrMethod as keyof typeof chalk] === 'function') {
             // If it's a valid chalk method, use it directly
             formattedMessage = (chalk[colorOrMethod as keyof typeof chalk] as any)(
-                `${level.toUpperCase()}: ${message}`,
+                `${level.toUpperCase()}`,
             );
         } else {
             // Fallback to default formatting
-            formattedMessage = `${level.toUpperCase()}: ${message}`;
+            formattedMessage = `${level.toUpperCase()}`;
         }
 
         return `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`;
@@ -266,9 +258,7 @@ export class Logger implements IAvernixLogger {
 
         // return `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`;
 
-        console.log(
-            `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`,
-        );
+        console.log(`${this.getString(level, message)}`, data ? data : '');
         return { level, message, data };
     }
 
