@@ -6,7 +6,7 @@ import { DateTime } from 'luxon';
  */
 
 /**
- * ILogger interface defines a standard logging system with various levels of log messages.
+ * IAvernixLogger interface defines a standard logging system with various levels of log messages.
  * It provides methods to log messages at different severity levels, including informational,
  * warning, and error messages, among others.
  */
@@ -87,19 +87,16 @@ interface IAvernixLogger {
 
 interface Log {
     level: LogType;
-    message: string;
-    data?: object;
+    messageOrData?: string | object;
+    dataIfMessage?: any;
 }
 interface LogSet {
-    message: string;
-    data?: object;
+    messageOrData?: string | object;
+    dataIfMessage?: object;
 }
 
 interface Args {
-    level: string;
-    message: string;
-    data: object;
-    debugMode: boolean;
+    debugMode?: boolean;
     customLogLevels?: { [level: string]: ChalkHexMethod };
     name?: string;
 }
@@ -146,11 +143,9 @@ export class Logger implements IAvernixLogger {
     private logLevels: { [key in LogType | string]: string };
     name?: string;
     debugMode: boolean;
-    data: object;
     public customLogLevels: CustomLogLevels = {};
 
     constructor(args: Args) {
-        this.data = args?.data;
         this.name = args.name;
         this.debugMode = args.debugMode ?? true;
         // Default log levels
@@ -187,7 +182,7 @@ export class Logger implements IAvernixLogger {
         return regex.test(hex);
     }
 
-    getString(level: LogType, message: string) {
+    getString(level: LogType, message?: string) {
         const dt = DateTime.now();
         let colorMethod = this.logLevels[level];
         const colorOrMethod = this.logLevels[level];
@@ -206,24 +201,8 @@ export class Logger implements IAvernixLogger {
             formattedMessage = `${level.toUpperCase()}`;
         }
 
-        return `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`;
+        return `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}:${message ? ' ' + message : ''}`;
     }
-
-    // createLogger(args: Args): IAvernixLogger {
-    //     const logger = new Logger(args);
-    //     return new Proxy(logger, {
-    //         get(target, prop, receiver) {
-    //             if (typeof prop === 'string' && prop in target.customLogLevels) {
-    //                 return (message: string, data?: object) => {
-    //                     const level = prop;
-    //                     target.log(level, message, data); // Ensure log() accepts colorMethod
-    //                 };
-    //             }
-    //             // Use explicit parameters instead of ...arguments
-    //             return Reflect.get(target, prop, receiver);
-    //         },
-    //     });
-    // }
 
     /**
      * Logs a message at the specified level with optional data. Filters out debug messages in production.
@@ -233,33 +212,16 @@ export class Logger implements IAvernixLogger {
      * @param {Object} [data] - Optional data to log alongside the message.
      * @returns {Log} The log object containing the level, message, and optional data.
      */
-    log(level: LogType, message: string, data?: object): Log {
+    log(level: LogType, messageOrData?: string | object, dataIfMessage?: object): Log {
+        let message = typeof messageOrData === 'string' ? messageOrData : undefined;
+        let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
+
         if (level === 'debug' && !this.debugMode) {
-            return { level, message, data };
+            return { level, messageOrData, dataIfMessage };
         }
-
-        const dt = DateTime.now();
-        let colorMethod = this.logLevels[level];
-        const colorOrMethod = this.logLevels[level];
-        let formattedMessage: string;
-
-        if (this.isValidHexColor(colorOrMethod)) {
-            // If it's a hex color, use chalk.hex
-            formattedMessage = chalk.hex(colorOrMethod)(`${level.toUpperCase()}`);
-        } else if (typeof chalk[colorOrMethod as keyof typeof chalk] === 'function') {
-            // If it's a valid chalk method, use it directly
-            formattedMessage = (chalk[colorOrMethod as keyof typeof chalk] as any)(
-                `${level.toUpperCase()}`,
-            );
-        } else {
-            // Fallback to default formatting
-            formattedMessage = `${level.toUpperCase()}`;
-        }
-
-        // return `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}: ${message}`;
 
         console.log(`${this.getString(level, message)}`, data ? data : '');
-        return { level, message, data };
+        return { level, messageOrData, dataIfMessage };
     }
 
     /**
@@ -268,9 +230,12 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    info(message: string, data: object): LogSet {
+    info(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+        let message = typeof messageOrData === 'string' ? messageOrData : undefined;
+        let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
+
         this.log('info', message, data);
-        return { message, data };
+        return { messageOrData, dataIfMessage };
     }
 
     /**
@@ -279,9 +244,12 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The debug message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    debug(message: string, data: object): LogSet {
-        this.log('debug', message, data);
-        return { message, data };
+    debug(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+        let message = typeof messageOrData === 'string' ? messageOrData : undefined;
+        let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
+
+        this.log('info', message, data);
+        return { messageOrData, dataIfMessage };
     }
 
     /**
@@ -290,9 +258,12 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    error(message: string, data: object): LogSet {
-        this.log('error', message, data);
-        return { message, data };
+    error(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+        let message = typeof messageOrData === 'string' ? messageOrData : undefined;
+        let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
+
+        this.log('info', message, data);
+        return { messageOrData, dataIfMessage };
     }
 
     /**
@@ -301,9 +272,12 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    warn(message: string, data: object): LogSet {
-        this.log('warn', message, data);
-        return { message, data };
+    warn(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+        let message = typeof messageOrData === 'string' ? messageOrData : undefined;
+        let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
+
+        this.log('info', message, data);
+        return { messageOrData, dataIfMessage };
     }
 
     /**
@@ -312,9 +286,12 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    crit(message: string, data: object): LogSet {
-        this.log('crit', message, data);
-        return { message, data };
+    crit(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+        let message = typeof messageOrData === 'string' ? messageOrData : undefined;
+        let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
+
+        this.log('info', message, data);
+        return { messageOrData, dataIfMessage };
     }
 
     /**
@@ -323,9 +300,12 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    notice(message: string, data: object): LogSet {
-        this.log('notice', message, data);
-        return { message, data };
+    notice(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+        let message = typeof messageOrData === 'string' ? messageOrData : undefined;
+        let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
+
+        this.log('info', message, data);
+        return { messageOrData, dataIfMessage };
     }
 
     /**
@@ -334,9 +314,12 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    http(message: string, data: object): LogSet {
-        this.log('http', message, data);
-        return { message, data };
+    http(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+        let message = typeof messageOrData === 'string' ? messageOrData : undefined;
+        let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
+
+        this.log('info', message, data);
+        return { messageOrData, dataIfMessage };
     }
 
     /**
@@ -345,9 +328,12 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    danger(message: string, data: object): LogSet {
-        this.log('danger', message, data);
-        return { message, data };
+    danger(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+        let message = typeof messageOrData === 'string' ? messageOrData : undefined;
+        let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
+
+        this.log('info', message, data);
+        return { messageOrData, dataIfMessage };
     }
 
     /**
@@ -356,9 +342,7 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    ignore(message: string, data: object): LogSet {
-        return { message, data };
-    }
+    ignore(messageOrData?: string | object, dataIfMessage?: object) {}
 }
 
 export function createLogger(args: Args) {
@@ -366,13 +350,13 @@ export function createLogger(args: Args) {
     return new Proxy(logger, {
         get(target, prop, receiver) {
             if (typeof prop === 'string' && prop in target.customLogLevels) {
-                return (message: string, data?: object) => {
-                    const level = prop;
-                    // const colorMethod = target.customLogLevels[level] ?? '#FFFFFF'; // Default color
-                    target.log(level, message, data); // Ensure log() accepts colorMethod
+                return (messageOrData?: string | object, dataIfMessage?: object) => {
+                    let message = typeof messageOrData === 'string' ? messageOrData : undefined;
+                    let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
+
+                    target.log(prop, message, data);
                 };
             }
-            // Use explicit parameters instead of ...arguments
             return Reflect.get(target, prop, receiver);
         },
     });

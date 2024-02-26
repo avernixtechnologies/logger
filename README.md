@@ -37,6 +37,8 @@ const logger = createLogger({});
 
 #### Passable Parameters
 
+Logger/createLogger accept three main parameters
+
 | Parameter | Type     | Description                       |
 | :-------- | :------- | :-------------------------------- |
 | `name`      | `string` | **Optional**. Sets the name in the logger. Defaults to empty string. |
@@ -46,8 +48,9 @@ const logger = createLogger({});
 
 #### Passing in Parameters
 
+Passing in parameters will be the same for both the built in Logger class and createLogger, we will use createLogger for the example.
+
 ```javascript
-// It will be the same for both the built in Logger class and createLogger, we will use createLogger for the example
 const logger = createLogger({
     name: 'My Super Cool App',
     debugMode: true,
@@ -59,9 +62,35 @@ const logger = createLogger({
 });
 ```
 ---
+#### Setting The Logger Name
+
+A common use case for this is disabling debug level logs in production, the quickest and easiest way of achieving that is through toggling the debugMode parameter.
+
+```javascript
+// Passing in a string
+const logger = createLogger({
+    name: 'My Super Cool App',
+});
+
+// Passing in a variable
+const MY_APP_NAME = 'Another Super Cool Name';
+const logger = createLogger({
+    name: MY_APP_NAME,
+});
+
+// Passing in a variable set by ENV.
+const MY_APP_NAME = process.env.NODE_ENV === 'development' ? 'Another Super Cool Name Development' : 'Another Super Cool Name';
+const logger = createLogger({
+    name: MY_APP_NAME,
+});
+```
+
+This is just one method you can use, if your application has another way of checking environments, you can make those return true or false and set it that way as well.
+
+---
 #### Handling debugMode
 
-A common usecase for this is disabling debug level logs in production, the quickest and easiest way of achieving that is through toggling the debugMode parameter.
+A common use case for this is disabling debug level logs in production, the quickest and easiest way of achieving that is through toggling the debugMode parameter.
 
 ```javascript
 const logger = createLogger({
@@ -115,7 +144,8 @@ const logger = createLogger({
 // Using .log requires setting the level as a property
   logger.log('testing', 'this is a very distinct error message', data);
 
-// Using a log level method
+// Using a log level method, this can only be done when utilizing createLogger.
+// Using a new instance of Logger with a custom method will throw an error.
   logger.testing('this is a very distinct error message', data)
 ```
 

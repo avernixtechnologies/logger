@@ -3,7 +3,7 @@ import chalk from 'chalk';
  * A lot of the DocBlocks were generated using AI. If you notice anything off, please let us know.
  */
 /**
- * ILogger interface defines a standard logging system with various levels of log messages.
+ * IAvernixLogger interface defines a standard logging system with various levels of log messages.
  * It provides methods to log messages at different severity levels, including informational,
  * warning, and error messages, among others.
  */
@@ -74,18 +74,15 @@ interface IAvernixLogger {
 }
 interface Log {
     level: LogType;
-    message: string;
-    data?: object;
+    messageOrData?: string | object;
+    dataIfMessage?: any;
 }
 interface LogSet {
-    message: string;
-    data?: object;
+    messageOrData?: string | object;
+    dataIfMessage?: object;
 }
 interface Args {
-    level: string;
-    message: string;
-    data: object;
-    debugMode: boolean;
+    debugMode?: boolean;
     customLogLevels?: {
         [level: string]: ChalkHexMethod;
     };
@@ -121,11 +118,10 @@ export declare class Logger implements IAvernixLogger {
     private logLevels;
     name?: string;
     debugMode: boolean;
-    data: object;
     customLogLevels: CustomLogLevels;
     constructor(args: Args);
     isValidHexColor(hex: string): boolean;
-    getString(level: LogType, message: string): string;
+    getString(level: LogType, message?: string): string;
     /**
      * Logs a message at the specified level with optional data. Filters out debug messages in production.
      *
@@ -134,70 +130,70 @@ export declare class Logger implements IAvernixLogger {
      * @param {Object} [data] - Optional data to log alongside the message.
      * @returns {Log} The log object containing the level, message, and optional data.
      */
-    log(level: LogType, message: string, data?: object): Log;
+    log(level: LogType, messageOrData?: string | object, dataIfMessage?: object): Log;
     /**
      * Logs an informational message with optional data.
      *
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    info(message: string, data: object): LogSet;
+    info(messageOrData?: string | object, dataIfMessage?: object): LogSet;
     /**
      * Logs a debug message with optional data. Debug messages are suppressed in production environment.
      *
      * @param {string} message - The debug message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    debug(message: string, data: object): LogSet;
+    debug(messageOrData?: string | object, dataIfMessage?: object): LogSet;
     /**
      * Logs an informational message with optional data.
      *
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    error(message: string, data: object): LogSet;
+    error(messageOrData?: string | object, dataIfMessage?: object): LogSet;
     /**
      * Logs an informational message with optional data.
      *
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    warn(message: string, data: object): LogSet;
+    warn(messageOrData?: string | object, dataIfMessage?: object): LogSet;
     /**
      * Logs an informational message with optional data.
      *
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    crit(message: string, data: object): LogSet;
+    crit(messageOrData?: string | object, dataIfMessage?: object): LogSet;
     /**
      * Logs an informational message with optional data.
      *
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    notice(message: string, data: object): LogSet;
+    notice(messageOrData?: string | object, dataIfMessage?: object): LogSet;
     /**
      * Logs an informational message with optional data.
      *
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    http(message: string, data: object): LogSet;
+    http(messageOrData?: string | object, dataIfMessage?: object): LogSet;
     /**
      * Logs an informational message with optional data.
      *
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    danger(message: string, data: object): LogSet;
+    danger(messageOrData?: string | object, dataIfMessage?: object): LogSet;
     /**
      * Logs no information, best use case for empty .then() blocks.
      *
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    ignore(message: string, data: object): LogSet;
+    ignore(messageOrData?: string | object, dataIfMessage?: object): void;
 }
 export declare function createLogger(args: Args): Logger;
 export {};
