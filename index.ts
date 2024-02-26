@@ -92,7 +92,7 @@ interface Log {
 }
 interface LogSet {
     messageOrData?: string | object;
-    dataIfMessage?: object;
+    dataIfMessage?: any;
 }
 
 interface Args {
@@ -212,7 +212,7 @@ export class Logger implements IAvernixLogger {
      * @param {Object} [data] - Optional data to log alongside the message.
      * @returns {Log} The log object containing the level, message, and optional data.
      */
-    log(level: LogType, messageOrData?: string | object, dataIfMessage?: object): Log {
+    log(level: LogType, messageOrData?: string | object, dataIfMessage?: any): Log {
         let message = typeof messageOrData === 'string' ? messageOrData : undefined;
         let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
 
@@ -230,7 +230,7 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    info(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+    info(messageOrData?: string | object, dataIfMessage?: any): LogSet {
         let message = typeof messageOrData === 'string' ? messageOrData : undefined;
         let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
 
@@ -244,7 +244,7 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The debug message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    debug(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+    debug(messageOrData?: string | object, dataIfMessage?: any): LogSet {
         let message = typeof messageOrData === 'string' ? messageOrData : undefined;
         let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
 
@@ -258,7 +258,7 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    error(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+    error(messageOrData?: string | object, dataIfMessage?: any): LogSet {
         let message = typeof messageOrData === 'string' ? messageOrData : undefined;
         let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
 
@@ -272,7 +272,7 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    warn(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+    warn(messageOrData?: string | object, dataIfMessage?: any): LogSet {
         let message = typeof messageOrData === 'string' ? messageOrData : undefined;
         let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
 
@@ -286,7 +286,7 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    crit(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+    crit(messageOrData?: string | object, dataIfMessage?: any): LogSet {
         let message = typeof messageOrData === 'string' ? messageOrData : undefined;
         let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
 
@@ -300,7 +300,7 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    notice(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+    notice(messageOrData?: string | object, dataIfMessage?: any): LogSet {
         let message = typeof messageOrData === 'string' ? messageOrData : undefined;
         let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
 
@@ -314,7 +314,7 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    http(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+    http(messageOrData?: string | object, dataIfMessage?: any): LogSet {
         let message = typeof messageOrData === 'string' ? messageOrData : undefined;
         let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
 
@@ -328,7 +328,7 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    danger(messageOrData?: string | object, dataIfMessage?: object): LogSet {
+    danger(messageOrData?: string | object, dataIfMessage?: any): LogSet {
         let message = typeof messageOrData === 'string' ? messageOrData : undefined;
         let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
 
@@ -342,7 +342,7 @@ export class Logger implements IAvernixLogger {
      * @param {string} message - The informational message to log.
      * @param {Object} data - Optional data to log alongside the message.
      */
-    ignore(messageOrData?: string | object, dataIfMessage?: object) {}
+    ignore(messageOrData?: string | object, dataIfMessage?: any) {}
 }
 
 export function createLogger(args: Args) {
