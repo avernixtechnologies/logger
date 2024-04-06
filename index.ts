@@ -118,6 +118,14 @@ type LogType =
     | string;
 type ChalkHexMethod = keyof typeof chalk;
 
+export interface LogTransport {
+    log: (
+        level: string,
+        message: string | object | undefined,
+        data?: object,
+    ) => Promise<void> | void;
+}
+
 /**
  * A versatile logging class for handling various levels of log messages with colored output.
  * Supports dynamic log levels such as info, debug, error, warn, crit, and more.
@@ -144,10 +152,12 @@ export class Logger implements IAvernixLogger {
     name?: string;
     debugMode: boolean;
     public customLogLevels: CustomLogLevels = {};
+    private transports: LogTransport[] = [];
 
     constructor(args: Args) {
         this.name = args.name;
         this.debugMode = args.debugMode ?? true;
+
         // Default log levels
         const defaultLogLevels: { [key in LogType]: string } = {
             info: '#00FF00',
@@ -175,6 +185,10 @@ export class Logger implements IAvernixLogger {
                 // throw new Error('Invalid hex color: ' + color);
             }
         });
+    }
+
+    addTransport(transport: LogTransport) {
+        this.transports.push(transport);
     }
 
     isValidHexColor(hex: string) {
@@ -212,7 +226,7 @@ export class Logger implements IAvernixLogger {
      * @param {Object} [data] - Optional data to log alongside the message.
      * @returns {Log} The log object containing the level, message, and optional data.
      */
-    log(level: LogType, messageOrData?: string | object, dataIfMessage?: any): Log {
+    async log(level: LogType, messageOrData?: string | object, dataIfMessage?: any): Promise<Log> {
         let message = typeof messageOrData === 'string' ? messageOrData : undefined;
         let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
 
@@ -221,6 +235,15 @@ export class Logger implements IAvernixLogger {
         }
 
         console.log(`${this.getString(level, message)}`, data ? data : '');
+
+        for (const transport of this.transports) {
+            try {
+                await transport.log(level, messageOrData, dataIfMessage);
+            } catch (error) {
+                console.error('Error in log transport:', error);
+            }
+        }
+
         return { level, messageOrData, dataIfMessage };
     }
 

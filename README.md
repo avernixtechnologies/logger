@@ -155,6 +155,21 @@ const logger = createLogger({
 | `customLevel`      | `method` | Accepts two properties; message and data. Again, data can be an object, array, etc. Default color: #00FF00 |
 
 ---
+#### Adding Transports
+
+Adding transports is as simple as declaring them, and using the "addTransport" method to add them.
+
+```javascript
+// In this example, we use the @trarn/logger-logtail transport.
+// When creating a new transport from scratch, the "addTransport" method calls a method named "log" to handle it's logic. A guide is WIP.
+
+const { TrarnLoggerLogtailTransport } = require('@trarn/logger-logtail');
+
+const logtailTransport = new TrarnLoggerLogtailTransport(`${process.env.LOGTAIL_TOKEN}`);
+logger.addTransport(logtailTransport, secondaryTransport);
+```
+
+---
 #### Changing Default Colors
 
 One of the perks of being able to set your log levels, is being able to override existing ones as well.
