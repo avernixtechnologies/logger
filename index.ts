@@ -95,10 +95,21 @@ interface LogSet {
     dataIfMessage?: any;
 }
 
+// interface debugLevels {
+//     level?: string;
+// }
+
 interface Args {
     debugMode?: boolean;
     customLogLevels?: { [level: string]: ChalkHexMethod };
     name?: string;
+    debugLevels?: string[];
+    formatFunction?: (args: {
+        level: string;
+        message?: string;
+        date: DateTime;
+        name?: string;
+    }) => string;
 }
 
 interface CustomLogLevels {
@@ -118,7 +129,17 @@ type LogType =
     | string;
 type ChalkHexMethod = keyof typeof chalk;
 
+/**
+ * Interface for log transport mechanisms.
+ * Implement this interface to create new transports for logging messages to various destinations like console, file, or external services.
+ */
 export interface LogTransport {
+    /**
+     * Logs a message with the specified level and data.
+     * @param level The severity level of the log message.
+     * @param message The log message content.
+     * @param data Optional additional data related to the log message.
+     */
     log: (
         level: string,
         message: string | object | undefined,
@@ -151,13 +172,21 @@ export class Logger implements IAvernixLogger {
     private logLevels: { [key in LogType | string]: string };
     name?: string;
     debugMode: boolean;
+    debugLevels: string[] = [];
     public customLogLevels: CustomLogLevels = {};
     private transports: LogTransport[] = [];
+    private formatFunction?: (args: {
+        level: string;
+        message?: string;
+        date: DateTime;
+        name?: string;
+    }) => string;
 
     constructor(args: Args) {
         this.name = args.name;
         this.debugMode = args.debugMode ?? true;
-
+        this.formatFunction = args.formatFunction;
+        this.debugLevels = args.debugLevels ?? [];
         // Default log levels
         const defaultLogLevels: { [key in LogType]: string } = {
             info: '#00FF00',
@@ -187,6 +216,10 @@ export class Logger implements IAvernixLogger {
         });
     }
 
+    /**
+     * Adds a new transport to the logger.
+     * @param transport An instance of a class that implements the LogTransport interface.
+     */
     addTransport(transport: LogTransport) {
         this.transports.push(transport);
     }
@@ -196,26 +229,34 @@ export class Logger implements IAvernixLogger {
         return regex.test(hex);
     }
 
-    getString(level: LogType, message?: string) {
+    getString(level: LogType, message?: string): string {
         const dt = DateTime.now();
-        let colorMethod = this.logLevels[level];
-        const colorOrMethod = this.logLevels[level];
-        let formattedMessage: string;
+        let colorOrMethod = this.logLevels[level];
+        let formattedLevel: string;
 
+        // Determine color or method for level
         if (this.isValidHexColor(colorOrMethod)) {
-            // If it's a hex color, use chalk.hex
-            formattedMessage = chalk.hex(colorOrMethod)(`${level.toUpperCase()}`);
+            formattedLevel = chalk.hex(colorOrMethod)(`${level.toUpperCase()}`);
         } else if (typeof chalk[colorOrMethod as keyof typeof chalk] === 'function') {
-            // If it's a valid chalk method, use it directly
-            formattedMessage = (chalk[colorOrMethod as keyof typeof chalk] as any)(
+            formattedLevel = (chalk[colorOrMethod as keyof typeof chalk] as any)(
                 `${level.toUpperCase()}`,
             );
         } else {
-            // Fallback to default formatting
-            formattedMessage = `${level.toUpperCase()}`;
+            formattedLevel = `${level.toUpperCase()}`;
         }
 
-        return `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedMessage}:${message ? ' ' + message : ''}`;
+        // Use custom format function if provided
+        if (this.formatFunction) {
+            return this.formatFunction({
+                level: formattedLevel,
+                message,
+                date: dt,
+                name: this.name,
+            });
+        }
+
+        // Fallback to default formatting
+        return `${dt.toLocaleString(DateTime.TIME_24_WITH_SHORT_OFFSET)} | ${this.name ? this.name + ' | ' : ''}${formattedLevel}:${message ? ' ' + message : ''}`;
     }
 
     /**
@@ -230,7 +271,10 @@ export class Logger implements IAvernixLogger {
         let message = typeof messageOrData === 'string' ? messageOrData : undefined;
         let data = typeof messageOrData === 'object' ? messageOrData : dataIfMessage;
 
-        if (level === 'debug' && !this.debugMode) {
+        if (
+            (level === 'debug' && !this.debugMode) ||
+            (this.debugLevels.includes(level) && !this.debugMode)
+        ) {
             return { level, messageOrData, dataIfMessage };
         }
 
